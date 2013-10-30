@@ -1,0 +1,12 @@
+Build.PL
+Changes
+LICENSE
+META.json
+README.md
+cpanfile
+lib/Otogiri.pm
+t/00_compile.t
+t/11_CLUD.t
+t/12_inflate_deflate.t
+META.yml
+MANIFEST
