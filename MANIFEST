@@ -4,10 +4,12 @@ LICENSE
 META.json
 README.md
 cpanfile
+lib/DBIx/Otogiri.pm
 lib/Otogiri.pm
 t/00_compile.t
 t/11_CLUD.t
 t/12_inflate_deflate.t
+t/13_irregular.t
 t/40_01_bug_single_with_void_result.t
 META.yml
 MANIFEST
