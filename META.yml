@@ -10,7 +10,7 @@ configure_requires:
   CPAN::Meta::Prereqs: 0
   Module::Build: 0.38
 dynamic_config: 0
-generated_by: 'Minilla/v0.11.0, CPAN::Meta::Converter version 2.132140'
+generated_by: 'Minilla/v0.11.0, CPAN::Meta::Converter version 2.133380'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -31,7 +31,7 @@ provides:
     file: lib/DBIx/Otogiri.pm
   Otogiri:
     file: lib/Otogiri.pm
-    version: 0.07
+    version: 0.08
 requires:
   Class::Accessor::Lite: 0
   DBIx::Sunny: 0
@@ -41,7 +41,7 @@ resources:
   bugtracker: https://github.com/ytnobody/Otogiri/issues
   homepage: https://github.com/ytnobody/Otogiri
   repository: git://github.com/ytnobody/Otogiri.git
-version: 0.07
+version: 0.08
 x_contributors:
   - 'papix <mail@papix.net>'
   - 'Takuya Tsuchida <tsucchi@cpan.org>'

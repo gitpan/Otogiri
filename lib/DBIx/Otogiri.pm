@@ -49,7 +49,7 @@ sub select {
 
 sub search_by_sql {
     my ($self, $sql, $binds_aref, $table) = @_;
-    my @binds = @{$binds_aref};
+    my @binds = @{$binds_aref || []};
     my $rtn = $self->dbh->select_all($sql, @binds);
     my @rows = $rtn ? $self->_inflate_rows($table, @$rtn) : ();
 }
@@ -101,8 +101,13 @@ sub txn_scope {
 }
 
 sub last_insert_id {
-    my $self = shift;
-    $self->dbh->last_insert_id(@_);
+    my ($self, $catalog, $schema, $table, $field, $attr_href) = @_;
+    my $driver_name = $self->{dsn}{driver};
+    if ($driver_name eq 'Pg' && !exists $attr_href->{sequence}) {
+        my @rows = $self->search_by_sql('SELECT LASTVAL() AS lastval');
+        return $rows[0]->{lastval};
+    }
+    return $self->dbh->last_insert_id(@_);
 }
 
 1;
@@ -152,7 +157,7 @@ DBIx::Otogiri is core feature class of Otogiri.
 
    connect_info => [$dsn, $dbuser, $dbpass],
 
-You have to specify dsn, dbuser, and dbpass, to connect to database.
+You have to specify C<dsn>, C<dbuser>, and C<dbpass>, to connect to database.
 
 =head2 inflate (optional)
 
