@@ -3,7 +3,7 @@ use 5.008005;
 use strict;
 use warnings;
 
-our $VERSION = "0.10";
+our $VERSION = "0.11";
 
 use DBIx::Otogiri;
 
@@ -26,7 +26,11 @@ Otogiri - A lightweight medicine for using database
     use Otogiri;
     my $db = Otogiri->new(connect_info => ['dbi:SQLite:...', '', '']);
     
-    my $row = $db->insert(book => {title => 'mybook1', author => 'me', ...});
+    $db->insert(book => {title => 'mybook1', author => 'me', ...});
+
+    my $book_id = $db->last_insert_id;
+    my $row = $db->single(book => {id => $book_id});
+
     print 'Title: '. $row->{title}. "\n";
     
     my @rows = $db->select(book => {price => {'>=' => 500}});
@@ -37,9 +41,6 @@ Otogiri - A lightweight medicine for using database
     $db->update(book => [author => 'oreore'], {author => 'me'});
     
     $db->delete(book => {author => 'me'});
-    
-    ### insert without row-data in response
-    $db->fast_insert(book => {title => 'someone', ...});
     
     ### using transaction
     do {
@@ -53,49 +54,9 @@ Otogiri - A lightweight medicine for using database
 
 Otogiri is a thing that like as ORM. A slogan is "Schema-less, Fat-less".
 
-=head1 ATTRIBUTE
+=head1 ATTRIBUTES
 
-=head2 connect_info (required)
-
-   connect_info => [$dsn, $dbuser, $dbpass],
-
-You have to specify C<dsn>, C<dbuser>, and C<dbpass>, to connect to database.
-
-=head2 inflate (optional)
-
-    use JSON;
-    inflate => sub {
-        my ($data, $tablename, $db) = @_;
-        if (defined $data->{json}) {
-            $data->{json} = decode_json($data->{json});
-        }
-        $data->{table} = $tablename;
-        $data;
-    },
-
-You may specify column inflation logic. 
-
-Specified code is called internally when called select(), search_by_sql(), and single().
-
-C<$db> is Otogiri instance, you can use Otogiri's method in inflate logic.
-
-=head2 deflate (optional)
-
-    use JSON;
-    deflate => sub {
-        my ($data, $tablename, $db) = @_;
-        if (defined $data->{json}) {
-            $data->{json} = encode_json($data->{json});
-        }
-        delete $data->{table};
-        $data;
-    },
-
-You may specify column deflation logic.
-
-Specified code is called internally when called insert(), update(), and delete().
-
-C<$db> is Otogiri instance, you can use Otogiri's method in deflate logic.
+Please see ATTRIBUTES section of L<DBIx::Otogiri> documentation.
 
 =head1 METHODS
 
@@ -106,6 +67,18 @@ C<$db> is Otogiri instance, you can use Otogiri's method in deflate logic.
 Instantiate and connect to db. Then, it returns L<DBIx::Otogiri> object.
 
 Please see ATTRIBUTE section.
+
+=head1 INFORMATION ABOUT INCOMPATIBILITY
+
+=head2 version 0.11
+
+=over 4
+
+=item An insert() method is removed, and it was become a synonym of fast_insert() method.
+
+  If you want to use previous style insert() method, please try L<Otogiri::Plugin::InsertAndFetch> .
+
+=back
 
 =head1 LICENSE
 

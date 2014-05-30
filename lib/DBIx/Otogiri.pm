@@ -42,10 +42,11 @@ sub _inflate_rows {
 
 sub select {
     my ($self, $table, $param, @opts) = @_;
-    $param = $self->_deflate_param($table, $param);
     my ($sql, @binds) = $self->maker->select($table, ['*'], $param, @opts);
     $self->search_by_sql($sql, \@binds, $table);
 }
+
+*search = *select;
 
 sub search_by_sql {
     my ($self, $sql, $binds_aref, $table) = @_;
@@ -56,18 +57,12 @@ sub search_by_sql {
 
 sub single {
     my ($self, $table, $param, @opts) = @_;
-    $param = $self->_deflate_param($table, $param);
     my ($sql, @binds) = $self->maker->select($table, ['*'], $param, @opts);
     my $row = $self->dbh->select_row($sql, @binds);
     $self->{inflate} ? $self->_inflate_rows($table, $row) : $row;
 }
 
-sub insert {
-    my $self = shift;
-    if ($self->fast_insert(@_)) {
-        return $self->single(shift, @_);
-    }
-}
+*fetch = *single;
 
 sub fast_insert {
     my ($self, $table, $param, @opts) = @_;
@@ -75,6 +70,8 @@ sub fast_insert {
     my ($sql, @binds) = $self->maker->insert($table, $param, @opts);
     $self->dbh->query($sql, @binds);
 }
+
+*insert = *fast_insert;
 
 sub delete {
     my ($self, $table, $param, @opts) = @_;
@@ -124,7 +121,11 @@ DBIx::Otogiri - Core of Otogiri
     use Otogiri;
     my $db = Otogiri->new(connect_info => ['dbi:SQLite:...', '', '']);
     
-    my $row = $db->insert(book => {title => 'mybook1', author => 'me', ...});
+    $db->insert(book => {title => 'mybook1', author => 'me', ...});
+
+    my $book_id = $db->last_insert_id;
+    my $row = $db->single(book => {id => $book_id});
+
     print 'Title: '. $row->{title}. "\n";
     
     my @rows = $db->select(book => {price => {'>=' => 500}});
@@ -135,9 +136,6 @@ DBIx::Otogiri - Core of Otogiri
     $db->update(book => [author => 'oreore'], {author => 'me'});
     
     $db->delete(book => {author => 'me'});
-    
-    ### insert without row-data in response
-    $db->fast_insert(book => {title => 'someone', ...});
     
     ### using transaction
     do {
@@ -151,7 +149,7 @@ DBIx::Otogiri - Core of Otogiri
 
 DBIx::Otogiri is core feature class of Otogiri.
 
-=head1 ATTRIBUTE
+=head1 ATTRIBUTES
 
 =head2 connect_info (required)
 
@@ -163,7 +161,7 @@ You have to specify C<dsn>, C<dbuser>, and C<dbpass>, to connect to database.
 
     use JSON;
     inflate => sub {
-        my ($data, $tablename) = @_;
+        my ($data, $tablename, $db) = @_;
         if (defined $data->{json}) {
             $data->{json} = decode_json($data->{json});
         }
@@ -175,11 +173,13 @@ You may specify column inflation logic.
 
 Specified code is called internally when called select(), search_by_sql(), and single().
 
+C<$db> is Otogiri instance, you can use Otogiri's method in inflate logic.
+
 =head2 deflate (optional)
 
     use JSON;
     deflate => sub {
-        my ($data, $tablename) = @_;
+        my ($data, $tablename, $db) = @_;
         if (defined $data->{json}) {
             $data->{json} = encode_json($data->{json});
         }
@@ -191,6 +191,8 @@ You may specify column deflation logic.
 
 Specified code is called internally when called insert(), update(), and delete().
 
+C<$db> is Otogiri instance, you can use Otogiri's method in deflate logic.
+
 =head1 METHODS
 
 =head2 new
@@ -201,27 +203,23 @@ Instantiate and connect to db.
 
 Please see ATTRIBUTE section.
 
-=head2 insert
+=head2 insert / fast_insert
 
-    my $row = $db->insert($table_name => $columns_in_hashref);
+    my $is_success = $db->insert($table_name => $columns_in_hashref);
 
-Insert data. Then, returns row data.
+Insert a data simply.
 
-=head2 fast_insert
+=head2 search
 
-    $db->fast_insert($table_name => $columns_in_hashref);
+=head2 select / search
 
-Insert data simply.
-
-=head2 select
-
-    my @rows = $db->select($table_name => $conditions_in_hashref [,@options]);
+    my @rows = $db->search($table_name => $conditions_in_hashref [,@options]);
 
 Select from specified table. Then, returns matched rows as array.
 
-=head2 single
+=head2 single / fetch
 
-    my $row = $db->single($table_name => $conditions_in_hashref [,@options]);
+    my $row = $db->fetch($table_name => $conditions_in_hashref [,@options]);
 
 Select from specified table. Then, returns first of matched rows.
 

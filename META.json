@@ -4,7 +4,7 @@
       "ytnobody <ytnobody@gmail.com>"
    ],
    "dynamic_config" : 0,
-   "generated_by" : "Minilla/v0.14.1",
+   "generated_by" : "Minilla/v1.0.0",
    "license" : [
       "perl_5"
    ],
@@ -52,8 +52,10 @@
       },
       "test" : {
          "requires" : {
+            "DBD::SQLite" : "0",
             "JSON" : "0",
-            "Test::More" : "0.98"
+            "Test::More" : "0.98",
+            "Test::Time" : "0"
          }
       }
    },
@@ -63,7 +65,7 @@
       },
       "Otogiri" : {
          "file" : "lib/Otogiri.pm",
-         "version" : "0.10"
+         "version" : "0.11"
       }
    },
    "release_status" : "stable",
@@ -77,7 +79,7 @@
          "web" : "https://github.com/ytnobody/Otogiri"
       }
    },
-   "version" : "0.10",
+   "version" : "0.11",
    "x_contributors" : [
       "papix <mail@papix.net>",
       "Takuya Tsuchida <tsucchi@cpan.org>"

@@ -2,6 +2,7 @@ use strict;
 use warnings;
 use utf8;
 use Test::More;
+use Test::Time;
 
 use Otogiri;
 use JSON;
@@ -34,83 +35,7 @@ my $dbfile  = ':memory:';
     }
 };
 
-subtest basic => sub {
-    my $db = Otogiri->new( 
-        connect_info => ["dbi:SQLite:dbname=$dbfile", '', ''],
-        inflate => sub {
-            my $row = shift;
-            $row->{data} = $json->decode($row->{data}) if defined $row->{data};
-            $row;
-        },
-        deflate => sub {
-            my $row = shift;
-            $row->{data} = $json->encode($row->{data}) if defined $row->{data};
-            $row;
-        }
-    );
-
-    my $sql = <<'EOF';
-CREATE TABLE free_data (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    data       TEXT
-);
-EOF
-
-    $db->do($sql);
-    $db->insert(free_data => {
-        data => {
-            name     => 'ytnobody', 
-            age      => 32,
-            favolite => [qw/Soba Zohni Akadashi/],
-        },
-    });
-    my $row = $db->single(free_data => {id => $db->last_insert_id});
-    
-    is $row->{data}{name}, 'ytnobody';
-    is $row->{data}{age}, 32;
-    is_deeply $row->{data}{favolite}, [qw/Soba Zohni Akadashi/];
-};
-
-subtest row_obj => sub {
-    my $db = Otogiri->new( 
-        connect_info => ["dbi:SQLite:dbname=$dbfile", '', ''],
-        inflate => sub {
-            my ($row, $table) = @_;
-            Otogiri::Test::Row->new($table, %$row);
-        },
-    );
-
-    my $sql = <<'EOF';
-CREATE TABLE member (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    name       TEXT    NOT NULL,
-    age        INTEGER NOT NULL DEFAULT 20,
-    sex        TEXT    NOT NULL,
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER
-);
-EOF
-
-    $db->do($sql);
-
-    my $param = {
-        name       => 'ytnobody', 
-        age        => 32,
-        sex        => 'male',
-        created_at => time,
-    };
-    
-    $db->insert(member => $param);
-    my $member = $db->single(member => {id => $db->last_insert_id});
-
-    isa_ok $member, 'Otogiri::Test::Row';
-    is $member->name, 'ytnobody';
-    is $member->age, 32;
-    is $member->sex, 'male';
-};
-
-
-subtest inflate_for_select => sub {
+subtest inflate_for_select_with_deflation_by_time => sub {
     my $db = Otogiri->new( 
         connect_info => ["dbi:SQLite:dbname=$dbfile", '', ''],
         inflate => sub {
@@ -129,6 +54,7 @@ subtest inflate_for_select => sub {
                 $row->{data}{handle_in_deflate} = ref $handle;
                 $row->{data} = $json->encode($row->{data});
             }
+            $row->{created_at} ||= time();
             $row;
         }
     );
@@ -136,23 +62,31 @@ subtest inflate_for_select => sub {
     my $sql = <<'EOF';
 CREATE TABLE free_data2 (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    data       TEXT
+    data       TEXT,
+    created_at INTEGER
 );
 EOF
 
     $db->do($sql);
+
+    my $now = time();
+
+    sleep 5;
     $db->fast_insert(free_data2 => {
         data => {
             name     => 'ytnobody', 
             favolite => [qw/Soba Zohni Akadashi/],
         },
     });
+
+    sleep 5;
     $db->fast_insert(free_data2 => {
         data => {
             name     => 'tsucchi', 
             favolite => [qw/Ramen Sushi/],
         },
     });
+
     my @rows = $db->select('free_data2', {});
     is( @rows, 2 );
     my ($row1, $row2) = @rows;
@@ -161,11 +95,13 @@ EOF
     is $row1->{data}{table_name_in_deflate}, 'free_data2';
     is ref $row1->{data}{handle_in_inflate}, 'DBIx::Otogiri';
     is $row1->{data}{handle_in_deflate},     'DBIx::Otogiri';
+    is $row1->{created_at} - $now, 5;
     is_deeply $row1->{data}{favolite}, [qw/Soba Zohni Akadashi/];
 
     is $row2->{data}{name}, 'tsucchi';
     is $row2->{data}{table_name_in_inflate}, 'free_data2';
     is $row2->{data}{table_name_in_deflate}, 'free_data2';
+    is $row2->{created_at} - $now, 10;
     is_deeply $row2->{data}{favolite}, [qw/Ramen Sushi/];
 };
 
