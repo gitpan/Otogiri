@@ -4,13 +4,14 @@ use strict;
 use warnings;
 
 use Class::Accessor::Lite (
-    ro => [qw/connect_info/],
+    ro => [qw/connect_info strict/],
     rw => [qw/dbh maker/],
     new => 0,
 );
 
 use SQL::Maker;
 use DBIx::Sunny;
+use DBIx::Otogiri::Iterator;
 
 sub new {
     my ($class, %opts) = @_;
@@ -21,8 +22,9 @@ sub new {
       $self->{dsn}{attributes},
       $self->{dsn}{driver_dsn}
     ) = DBI->parse_dsn($self->{connect_info}[0]);
+    my $strict = defined $self->strict ? $self->strict : 1;
     $self->{dbh}   = DBIx::Sunny->connect(@{$self->{connect_info}});
-    $self->{maker} = SQL::Maker->new(driver => $self->{dsn}{driver});
+    $self->{maker} = SQL::Maker->new(driver => $self->{dsn}{driver}, strict => $strict);
     return $self;
 }
 
@@ -50,9 +52,17 @@ sub select {
 
 sub search_by_sql {
     my ($self, $sql, $binds_aref, $table) = @_;
+
+    return DBIx::Otogiri::Iterator->new(
+        db    => $self,
+        sql   => $sql, 
+        binds => $binds_aref,
+        table => $table,
+    ) unless wantarray;
+
     my @binds = @{$binds_aref || []};
     my $rtn = $self->dbh->select_all($sql, @binds);
-    my @rows = $rtn ? $self->_inflate_rows($table, @$rtn) : ();
+    $rtn ? $self->_inflate_rows($table, @$rtn) : ();
 }
 
 sub single {
@@ -156,6 +166,12 @@ DBIx::Otogiri is core feature class of Otogiri.
 
 You have to specify C<dsn>, C<dbuser>, and C<dbpass>, to connect to database.
 
+=head2 strict (optional, default is 1)
+
+In strict mode, all the expressions must be declared by using blessed references that export as_sql and bind methods like SQL::QueryMaker.
+
+Please see METHODS section of L<SQL::Maker>'s documentation.
+
 =head2 inflate (optional)
 
     use JSON;
@@ -212,9 +228,19 @@ Insert a data simply.
 
 =head2 select / search
 
+    ### receive rows of result in array
     my @rows = $db->search($table_name => $conditions_in_hashref [,@options]);
+    
+    ### or we can receive result as iterator object
+    my $iter = $db->search($table_name => $conditions_in_hashref [,@options]);
+    
+    while (my $row = $iter->next) {
+        ... any logic you want ...
+    }
+    
+    printf "rows = %s\n", $iter->fetched_count;
 
-Select from specified table. Then, returns matched rows as array.
+Select from specified table. When you receive result by array, it returns matched rows. Or not, it returns a result as L<DBIx::Otogiri::Iterator> object.
 
 =head2 single / fetch
 
@@ -275,6 +301,8 @@ ytnobody E<lt>ytnobody@gmail.comE<gt>
 L<DBIx::Sunny>
 
 L<SQL::Maker>
+
+L<DBIx::Otogiri::Iterator>
 
 =cut
 

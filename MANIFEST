@@ -5,6 +5,7 @@ META.json
 README.md
 cpanfile
 lib/DBIx/Otogiri.pm
+lib/DBIx/Otogiri/Iterator.pm
 lib/Otogiri.pm
 t/00_compile.t
 t/11_CLUD.t
