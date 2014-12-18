@@ -11,6 +11,7 @@ t/00_compile.t
 t/11_CLUD.t
 t/12_inflate_deflate.t
 t/13_irregular.t
+t/14_last_insert_id_in_postgresql.t
 t/40_01_bug_single_with_void_result.t
 t/41_01_bug_deflate_with_last_update.t
 META.yml
